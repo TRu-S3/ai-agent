@@ -22,6 +22,8 @@ EXPOSE 4111
 
 ENV PORT=4111
 
+ENV HOSTNAME="0.0.0.0"
+
 # アプリケーションを起動
 CMD ["npm", "start"]
 
