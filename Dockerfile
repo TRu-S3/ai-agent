@@ -18,10 +18,8 @@ RUN npm install
 # アプリケーションのソースコードをコピー
 COPY . .
 
-# Cloud Runで指定されたポートを公開
-EXPOSE 8080
-
-ENV HOSTNAME="0.0.0.0"
+EXPOSE 4111
+ENV PORT=4111
 
 # アプリケーションを起動
 CMD ["npm", "start"]
