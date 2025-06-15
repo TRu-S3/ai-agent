@@ -22,9 +22,9 @@ COPY . .
 EXPOSE 8080
 
 # Cloud Runが設定するPORT環境変数を使用（デフォルトは8080）
-# ENV PORT=8080 # Cloud Runでは自動で設定されるため、この行は必須ではありません
+ENV PORT=8080
 
 ENV HOSTNAME="0.0.0.0"
 
-# アプリケーションを起動 (修正箇所)
-CMD ["sh", "-c", "npm run start"]
+# アプリケーションを起動
+CMD ["npm", "start"]
