@@ -18,11 +18,14 @@ RUN npm install
 # アプリケーションのソースコードをコピー
 COPY . .
 
+# アプリケーションをビルド（★この行を追加）
+RUN npm run build
+
 # Cloud Runはデフォルトで8080ポートを期待しますが、PORTで動的に設定されます
 EXPOSE 8080
 
 # Cloud Runが設定するPORT環境変数を使用（デフォルトは8080）
-ENV PORT=8080
+# ENV PORT=8080 # Cloud Runでは自動で設定されるため、この行は必須ではありません
 
 ENV HOSTNAME="0.0.0.0"
 
