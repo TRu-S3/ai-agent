@@ -4,8 +4,8 @@ import { repositoryAnalysisAgent } from "./agents";
 
 export const mastra = new Mastra({
     server: {
-        port: 4111, // Defaults to 4111
-        timeout: 10000, // Defaults to 30000 (30s)
+        port: 8080,
+        timeout: 30000,
         cors: {
             origin: ["*"], // Allow specific origins or '*' for all
             allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
