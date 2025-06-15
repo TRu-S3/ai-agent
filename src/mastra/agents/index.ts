@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
-import { LibSQLStore } from '@mastra/libsql';
+import { LibSQLStore } from "@mastra/libsql";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { cloneRepositoryTool } from "../tools/github/cloneRepository";
 import { gatherRepositoryInfoTool } from "../tools/github/gatherRepositoryInfo";
@@ -8,7 +8,8 @@ import { tokeiAnalyzerTool } from "../tools/github/tokeiAnalyzer";
 import { saveToFileTool } from "../tools/github/saveToFile";
 import { commitAnalyzerTool } from "../tools/github/commitAnalyzer";
 import { config } from "dotenv";
-config({ path: '/usr/src/app/.env' });
+
+config();
 
 const instructionPrompt = `
 You are TechSpyder,
@@ -135,7 +136,7 @@ summary:
 <-------------------------------------------------------------->
 
 At the end, please display the output translated into Japanese.
-`
+`;
 
 /*`
 あなたはTechSpyder。
@@ -266,12 +267,13 @@ const google = createGoogleGenerativeAI({
 
 // エージェント定義
 const githubAnalysisAgent = new Agent({
-  name: "GitHub Analysis Agent",
-  instructions: "GitHubリポジトリを解析するエージェントです。リポジトリのURLを指定すると、それをクローンして解析できます。",
-  model: google("gemini-2.0-flash-001"),
-  tools: {
-    cloneRepositoryTool
-  }
+    name: "GitHub Analysis Agent",
+    instructions:
+        "GitHubリポジトリを解析するエージェントです。リポジトリのURLを指定すると、それをクローンして解析できます。",
+    model: google("gemini-2.0-flash-001"),
+    tools: {
+        cloneRepositoryTool,
+    },
 });
 
 // GitHubリポジトリ解析エージェント
@@ -284,11 +286,11 @@ export const repositoryAnalysisAgent = new Agent({
         commitAnalyzerTool,
         cloneRepositoryTool,
         tokeiAnalyzerTool,
-        saveToFileTool
+        saveToFileTool,
     },
     memory: new Memory({
         storage: new LibSQLStore({
-        url: 'file:../mastra.db', // path is relative to the .mastra/output directory
+            url: "file:../mastra.db", // path is relative to the .mastra/output directory
         }),
     }),
 });
