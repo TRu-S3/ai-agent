@@ -27,4 +27,4 @@ EXPOSE 8080
 ENV HOSTNAME="0.0.0.0"
 
 # アプリケーションを起動 (修正箇所)
-CMD ["npm", "run", "start"]
+CMD ["sh", "-c", "npm run start"]
