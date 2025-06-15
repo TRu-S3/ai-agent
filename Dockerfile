@@ -21,6 +21,8 @@ COPY . .
 # Cloud Runで指定されたポートを公開
 EXPOSE 8080
 
+ENV HOSTNAME="0.0.0.0"
+
 # アプリケーションを起動
 CMD ["npm", "start"]
 
