@@ -42,7 +42,7 @@ export const saveToFileTool = createTool({
         styles: { '!!str': 'plain' },
       });
 
-      const outputDir = path.resolve(process.cwd(), ".mastra/output");
+      const outputDir = path.resolve(process.cwd(), "results");
       const filePath = path.resolve(outputDir, `${gitHubAccountName}_result.yaml`);
 
       fs.mkdirSync(outputDir, { recursive: true });

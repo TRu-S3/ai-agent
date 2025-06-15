@@ -7,7 +7,8 @@ import { gatherRepositoryInfoTool } from "../tools/github/gatherRepositoryInfo";
 import { tokeiAnalyzerTool } from "../tools/github/tokeiAnalyzer";
 import { saveToFileTool } from "../tools/github/saveToFile";
 import { commitAnalyzerTool } from "../tools/github/commitAnalyzer";
-
+import { config } from "dotenv";
+config({ path: '/usr/src/app/.env' });
 
 const instructionPrompt = `
 You are TechSpyder,
