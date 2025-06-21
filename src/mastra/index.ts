@@ -1,6 +1,7 @@
 import { Mastra } from "@mastra/core";
 import { PinoLogger } from "@mastra/loggers";
-import { repositoryAnalysisAgent } from "./agents";
+// import { repositoryAnalysisWorkflow } from "./workflows";
+import { repositorySummarizerAgent } from "./agents/index"
 
 export const mastra = new Mastra({
     server: {
@@ -14,8 +15,9 @@ export const mastra = new Mastra({
         },
     },
     agents: {
-        repositoryAnalysisAgent,
+        repositorySummarizerAgent,
     },
+    // workflows: [repositoryAnalysisWorkflow],
     logger: new PinoLogger({
         name: "Mastra",
         level: "debug",

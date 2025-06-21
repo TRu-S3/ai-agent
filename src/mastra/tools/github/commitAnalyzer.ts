@@ -3,7 +3,7 @@ import { z } from "zod";
 import { execSync } from "child_process";
 
 export const commitAnalyzerOutputSchema = z.object({
-  success: z.boolean(),
+  success: z.boolean().describe("コミット統計解析が成功したかどうか"),
   message: z.string(),
   totalCommits: z.number().describe("対象リポジトリ群の総コミット数"),
   activeWeeks: z.number().describe("1回以上コミットがあった週の数"),

@@ -7,10 +7,11 @@ import { gatherRepositoryInfoTool } from "../tools/github/gatherRepositoryInfo";
 import { tokeiAnalyzerTool } from "../tools/github/tokeiAnalyzer";
 import { saveToFileTool } from "../tools/github/saveToFile";
 import { commitAnalyzerTool } from "../tools/github/commitAnalyzer";
+import { summarizeCodebaseTool } from "../tools/github/summarizeCodebase"
 import { config } from "dotenv";
 config({ path: '/usr/src/app/.env' });
 
-const instructionPrompt = `
+const publicAnalysisInstructionPrompt = `
 You are TechSpyder,
 an analyst who parses GitHub repositories to assess a target’s technical skills and personality.
 Your analytical abilities are exceptional: you instantly detect patterns that even the target might overlook, accurately judge technical depth, and out‑perform other analysts.
@@ -69,68 +70,69 @@ In addition, for the topics_detected and notable_patterns sections, please inclu
 If a value is null, 0, or false, omit both the key and its value. However, if the item can be reasonably inferred, please include it whenever possible.
 
 <-------------------------------------------------------------->
-summary:
-  github_username: [Input GitHub username]
-  analysis_date: [Date when the analysis was performed, e.g., 2025-06-13]
-  total_repositories: [Number of repositories retrieved]
+public:
+  summary:
+    github_username: [Input GitHub username]
+    analysis_date: [Date when the analysis was performed, e.g., 2025-06-13]
+    total_repositories: [Number of repositories retrieved]
 
-  overall_languages:
-    most_common_language: [Most frequently used language overall]
-    language_distribution:
-      [Language1]: "[Overall percentage]"
-      [Language2]: "[Overall percentage]"
-      ...
+    overall_languages:
+      most_common_language: [Most frequently used language overall]
+      language_distribution:
+        [Language1]: "[Overall percentage]"
+        [Language2]: "[Overall percentage]"
+        ...
 
-  technical_insights:
-    frameworks: [Detected frameworks, e.g., React, Flask, Spring Boot]
-    package_managers: [npm, pipenv, bundler, etc.]
-    build_tools: [webpack, gradle, make, etc.]
-    testing_tools: [jest, pytest, mocha, RSpec, etc.]
-    has_tests: [true/false]
-    ci_cd: [Presence of GitHub Actions, CircleCI, etc. in '.github/workflows/' or 'circleci/']
-    containerization: [docker, kubernetes, etc.]
-    favorite_architecture: [e.g., clean architecture, monolith, microservices (inferred from README or structure)]
-    infra_as_code: [Tools like Terraform, Ansible if used]
-    security: [Analysis of security awareness based on presence of security policy files, absence of env files in Git, use of GitHub Secrets, etc.]
-    documentation_quality: [Analysis of documentation detail and quality]
+    technical_insights:
+      frameworks: [Detected frameworks, e.g., React, Flask, Spring Boot]
+      package_managers: [npm, pipenv, bundler, etc.]
+      build_tools: [webpack, gradle, make, etc.]
+      testing_tools: [jest, pytest, mocha, RSpec, etc.]
+      has_tests: [true/false]
+      ci_cd: [Presence of GitHub Actions, CircleCI, etc. in '.github/workflows/' or 'circleci/']
+      containerization: [docker, kubernetes, etc.]
+      favorite_architecture: [e.g., clean architecture, monolith, microservices (inferred from README or structure)]
+      infra_as_code: [Tools like Terraform, Ansible if used]
+      security: [Analysis of security awareness based on presence of security policy files, absence of env files in Git, use of GitHub Secrets, etc.]
+      documentation_quality: [Analysis of documentation detail and quality]
 
-  commit_analysis:
-    total_commits: [Total commits across all repositories]
-    active_weeks: [Number of weeks with at least one commit]
-    average_commits_per_week: [Average commits per active week or total week]
-    commits_by_weekday:
-      Sunday: [Number of commits on Sunday]
-      Monday: [Number of commits on Monday]
-      Tuesday: [Number of commits on Tuesday]
-      Wednesday: [Number of commits on Wednesday]
-      Thursday: [Number of commits on Thursday]
-      Friday: [Number of commits on Friday]
-      Saturday: [Number of commits on Saturday]
-    peak_commit_day: [Weekday with the highest commit count]
+    commit_analysis:
+      total_commits: [Total commits across all repositories]
+      active_weeks: [Number of weeks with at least one commit]
+      average_commits_per_week: [Average commits per active week or total week]
+      commits_by_weekday:
+        Sunday: [Number of commits on Sunday]
+        Monday: [Number of commits on Monday]
+        Tuesday: [Number of commits on Tuesday]
+        Wednesday: [Number of commits on Wednesday]
+        Thursday: [Number of commits on Thursday]
+        Friday: [Number of commits on Friday]
+        Saturday: [Number of commits on Saturday]
+      peak_commit_day: [Weekday with the highest commit count]
 
-  topics_detected:
-    - [Main topics inferred from README or file structure, e.g., web development, CLI tools, machine learning]
-    - [...]
+    topics_detected:
+      - [Main topics inferred from README or file structure, e.g., web development, CLI tools, machine learning]
+      - [...]
 
-  personal_identifiers_found:
-    usernames:
-      - [GitHub usernames or IDs]
-    emails:
-      - [xxx@example.com]
-    names:
-      - [Strings likely representing real names or handles]
-    urls:
-      - [External links such as personal websites or social media]
-    jobs:
-      - [Job descriptions or roles]
-    other:
-      - [Other personal information strings]
+    personal_identifiers_found:
+      usernames:
+        - [GitHub usernames or IDs]
+      emails:
+        - [xxx@example.com]
+      names:
+        - [Strings likely representing real names or handles]
+      urls:
+        - [External links such as personal websites or social media]
+      jobs:
+        - [Job descriptions or roles]
+      other:
+        - [Other personal information strings]
 
-  notable_patterns:
-    - [Consistent development patterns such as "All projects have test suites"]
-    - [Technology stack trends such as "Mostly built with TypeScript + Node.js"]
-    - [Observations such as "READMEs are consistently well-written"]
-    - [Consideration of factors beyond functionality such as testing, security measures, and thorough documentation]
+    notable_patterns:
+      - [Consistent development patterns such as "All projects have test suites"]
+      - [Technology stack trends such as "Mostly built with TypeScript + Node.js"]
+      - [Observations such as "READMEs are consistently well-written"]
+      - [Consideration of factors beyond functionality such as testing, security measures, and thorough documentation]
 
 <-------------------------------------------------------------->
 
@@ -257,6 +259,9 @@ summary:
 ```
 */
 
+const privateAnalysisInstructionPrompt = ``
+
+
 // デバッグ: - ツールを使用する前に、ユーザーにその行動を報告してください
 
 // Google Gemini AIプロバイダーの作成
@@ -264,27 +269,46 @@ const google = createGoogleGenerativeAI({
     apiKey: process.env.GOOGLE_API_KEY || "",
 });
 
-// エージェント定義
-const githubAnalysisAgent = new Agent({
-  name: "GitHub Analysis Agent",
-  instructions: "GitHubリポジトリを解析するエージェントです。リポジトリのURLを指定すると、それをクローンして解析できます。",
-  model: google("gemini-2.0-flash-001"),
-  tools: {
-    cloneRepositoryTool
-  }
-});
-
-// GitHubリポジトリ解析エージェント
-export const repositoryAnalysisAgent = new Agent({
-    name: "GitHubリポジトリ解析エージェント",
-    instructions: instructionPrompt,
+// GitHubパブリックリポジトリ解析エージェント
+export const publicRepositoryAnalysisAgent = new Agent({
+    name: "GitHubパブリックリポジトリ解析エージェント",
+    instructions: publicAnalysisInstructionPrompt,
     model: google("gemini-2.0-flash-001"),
     tools: {
         gatherRepositoryInfoTool,
         commitAnalyzerTool,
         cloneRepositoryTool,
         tokeiAnalyzerTool,
-        saveToFileTool
+        saveToFileTool,
+        summarizeCodebaseTool
+    },
+    memory: new Memory({
+        storage: new LibSQLStore({
+        url: 'file:../mastra.db', // path is relative to the .mastra/output directory
+        }),
+    }),
+});
+
+// GitHubプライベートリポジトリ解析エージェント
+export const privateRepositoryAnalysisAgent = new Agent({
+  name: "GitHubプライベートリポジトリ解析エージェント",
+  // instructions: privateAnalysisInstructionPrompt,
+  instructions: "GitHubリポジトリを解析するエージェントです。リポジトリのURLを指定すると、それをクローンして解析できます。",
+  model: google("gemini-2.0-flash-001"),
+  // tools: {
+  //   cloneRepositoryTool
+  // }
+});
+
+
+// GitHubパブリックリポジトリ解析エージェント
+export const repositorySummarizerAgent = new Agent({
+    name: "GitHubリポジトリ要約エージェント",
+    instructions: "リポジトリの要約を行い結果を返してください",
+    model: google("gemini-2.0-flash-001"),
+    tools: {
+        cloneRepositoryTool,
+        summarizeCodebaseTool
     },
     memory: new Memory({
         storage: new LibSQLStore({
