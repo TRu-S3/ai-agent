@@ -39,22 +39,11 @@ export const cloneRepositoryTool = createTool({
         branch: z
             .string()
             .optional()
-            .describe("クローンするブランチ名。指定しない場合はデフォルトブランチになります。特定の機能に関するコードだけを分析したい場合に指定します"),
-        includeLfs: z
-            .boolean()
-            .optional()
-            .default(false)
-            .describe("Git LFSファイルも取得するか - 大規模なプロジェクトで依存リポジトリも分析したい場合はtrueにします"),
-        includeSubmodules: z
-            .boolean()
-            .optional()
-            .default(false)
-            .describe("サブモジュールも取得するか - 大規模なプロジェクトで依存リポジトリも分析したい場合はtrueにします"),
+            .describe("クローンするブランチ名。指定しない場合は**デフォルトブランチ**になります。特定の機能に関するコードだけを分析したい場合に指定します"),
     }),
     outputSchema: cloneOutputSchema,
     execute: async ({ context }) => {
-        const { repositoryUrl, branch, includeLfs, includeSubmodules } =
-            context;
+        const { repositoryUrl, branch } = context;
 
         try {
 
@@ -87,31 +76,11 @@ export const cloneRepositoryTool = createTool({
                 command += ` -b ${branch}`;
             }
 
-            // サブモジュールが必要な場合
-            if (includeSubmodules) {
-                command += ` --recurse-submodules`;
-            }
-
             // ターゲットディレクトリを指定
             command += ` ${cloneDir}`;
 
             // コマンド実行
             const { stdout, stderr } = await execAsync(command);
-
-            // LFSファイルが必要な場合
-            if (includeLfs) {
-                try {
-                    // ディレクトリに移動してLFSファイルを取得
-                    await execAsync(`cd ${cloneDir} && git lfs pull`);
-                } catch (error: any) {
-                    return {
-                        success: true,
-                        message: `リポジトリのクローンは成功しましたが、LFSファイルの取得に失敗しました: ${error.message}`,
-                        repositoryFullPath: fullPath,
-                        cloneDirectoryName: cloneDir,
-                    };
-                }
-            }
 
             return {
                 success: true,

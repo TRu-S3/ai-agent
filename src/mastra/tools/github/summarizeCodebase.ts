@@ -55,6 +55,7 @@ export const summarizeCodebaseTool = createTool({
         const combinedSummary = await combineSummaries(fileSummaries);  // 各ファイルの情報をまとめる
 
         summaries[repoRoot] = combinedSummary;
+        
       } catch (err) {
         summaries[repoRoot] = `リポジトリの分析に失敗しました: ${(err as Error).message}`;
       }
@@ -192,12 +193,16 @@ async function combineSummaries(summaries: Record<string, string>): Promise<stri
   const result = await generateText({
     model: google("gemini-2.0-flash-001"),
     prompt: `
-The following are summaries of multiple source files.
-Based on this information, please describe in clear and concise English **what kind of application this is**, including its **overall structure, technologies used, and main functionalities**.
+The following is a summary of multiple files. Please provide a clear and easy-to-understand overview in Japanese of what kind of application it is overall, and what structure and technologies it is built with.
+Also, briefly summarize information about the user, their areas of expertise or features, and the technology stack they use.  
+At this time, do not mention specific variable or function names.
+
 ${combinedText}
 `});
 /*
-以下は複数ファイルの要約です。全体としてどんなアプリケーションで、どのような構造・技術で成り立っているかを日本語でわかりやすくまとめてください。
+以下は複数ファイルのまとめです。全体としてどんなアプリケーションで、どのような構造・技術で成り立っているかを日本語でわかりやすくまとめてください。
+ユーザーに関する情報、ユーザーの得意な分野や機能、技術スタック等を簡潔に要約してください。この時具体的な変数/関数名についての言及はしないでください。
+
 ${combinedText}
 */
 
@@ -252,18 +257,25 @@ export async　function readmeChecker(repoPath: string, readmeContent: string): 
   const model = google("gemini-2.0-flash-001");
   const fileStructure = await getFileStructure(repoPath)
   const readmeCheckerInstructionPrompt = `
-以下のREADME.mdの内容を確認してください。
-これは人間の開発者が手作業で書いたものですか？それとも自動生成されたものですか？
-手作業であれば、README.mdの内容を要約し、目的、使用技術、機能、使い方、構成を日本語で簡潔に説明してください。
-そうでなければ "自動生成" とだけ答えてください。
+Please review the contents of the following README.md file. 
+If you determine that it was written manually by a human developer, provide a concise summary in English based on the README.md content, including information about the developer, their areas of expertise or features, and the technology stack used. Do not mention any specific variable or function names.
+If you determine that it was not written manually by a human developer, respond with "Auto-generated" only.
 
-なお、自動生成の判定には以下のファイル構造とREADME.mdの内容がマッチしていそうかも判断材料にしてください。
+When making the judgment about whether it is auto-generated, please also consider whether the following file structure matches the README.md content.
 ${fileStructure}
 
 ---
 ${readmeContent}
 ---
 `;
+/*
+  以下のREADME.mdの内容を確認し、人間の開発者が手作業で書いたもので書いたものだと判定した場合は
+  README.mdの内容から、開発者に関する情報、開発者の得意な分野や機能、技術スタック等を英語で簡潔に要約してください。この時具体的な変数/関数名についての言及はしないでください。
+  人間の開発者が手作業で書いたものでないと判定した場合は "自動生成" とだけ答えてください。
+
+  なお、自動生成の判定には以下のファイル構造とREADME.mdの内容がマッチしていそうかも判断材料にしてください。
+  ${fileStructure}
+*/
   console.log("🤖 readmeChecker: prompt =>", readmeCheckerInstructionPrompt.substring(0, 1000) + " ...");////////////////////////////////
 
   const summary = await generateText({

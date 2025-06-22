@@ -22,7 +22,7 @@ export const saveFileOutputSchema = z
  */
 export const saveToFileTool = createTool({
   id: "save-to-file",
-  description: "指定した文字列を .mastra/output ディレクトリにファイルとして保存します",
+  description: "リポジトリの分析結果をYAMLファイルに保存します",
   inputSchema: z.object({
     gitHubAccountName: z
         .string()
