@@ -6,6 +6,8 @@ import { z } from "zod";
 import path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { config } from "dotenv";
+config({ path: '../.env' });
 
 const execAsync = promisify(exec);
 
@@ -16,6 +18,7 @@ const google = createGoogleGenerativeAI({
 
 export const summarizeCodebaseOutputSchema = z.object({
     gitHubAccountName: z.string(),
+    hasGitHubPrivateToken: z.boolean(),
     localRepoPaths: z.array(z.string()),
     repoSummaries: z.string().describe("全リポジトリの要約"),
     insightsSummaries: z.string().describe("全リポジトリの特徴のまとめ")
@@ -26,6 +29,7 @@ export const step5 = createStep({
     description: "与えられたリポジトリを解析し、どのようなことが記述されているかを包括的にまとめます。",
     inputSchema: z.object({
         gitHubAccountName: z.string(),
+        hasGitHubPrivateToken: z.boolean(),
         localRepoPaths: z.array(z.string()).describe("分析するリポジトリのローカルパス配列"),
     }),
     outputSchema: summarizeCodebaseOutputSchema,
@@ -71,6 +75,7 @@ export const step5 = createStep({
 
         return {
             gitHubAccountName: inputData.gitHubAccountName,
+            hasGitHubPrivateToken: inputData.hasGitHubPrivateToken,
             localRepoPaths: localRepoPaths,
             repoSummaries: repoSummaries,
             insightsSummaries: insightsSummaries

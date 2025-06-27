@@ -3,7 +3,8 @@ import { z } from "zod";
 import axios from "axios";
 import { generateText } from 'ai';
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-
+import { config } from "dotenv";
+config({ path: '../.env' });
 
 const google = createGoogleGenerativeAI({
     apiKey: process.env.GOOGLE_API_KEY || "",
@@ -14,55 +15,82 @@ export const step1 = createStep({
     description: '対象GitHubアカウントのフォーク以外のリポジトリURLを全て取得します。',
     inputSchema: z.object({
         gitHubAccountName: z.string(),
+        gitHubPrivateToken: z.string().optional().default(""),
     }),
     outputSchema: z.object({
         gitHubAccountName: z.string(),
+        gitHubPrivateToken: z.string().optional().default(""),
         repositoryUrls: z.array(z.string()).describe("対象アカウントのことがわかるGitHubリポジトリをAIセレクトで5つ選んで返す"),
     }),
     execute: async ({ inputData }) => {
-        const { gitHubAccountName } = inputData;
+        const { gitHubAccountName, gitHubPrivateToken } = inputData;
+        const reposNum = 5
 
         try {
-            const perPage = 50;
-            const page = 1;
-            const reposNum = 5
-
-            const res = await axios.get(
-                `https://api.github.com/users/${gitHubAccountName}/repos`,
-                {
-                    params: {
-                        per_page: perPage,
-                        page: page,
-                    },
-                    headers: {
-                        "User-Agent": "public-repo-cloner",
-                    },
-                }
-            );
-
-            if (res.status === 404) {
+            const allRepo =  await getAllRepositories(gitHubAccountName, gitHubPrivateToken);
+            
+            if (!allRepo) {
                 throw new Error(`GitHubユーザー "${gitHubAccountName}" は存在しません。`);
             }
-
-            const nonForkRepos = res.data.filter((repo: any) => !repo.fork);
-
             // 対象者のことがよくわかるリポジトリを5つ選択
-            const selectedUrls = await selectUsefulRepos(gitHubAccountName, nonForkRepos, reposNum);
+            const selectedUrls = await selectUsefulRepos(gitHubAccountName, allRepo, reposNum);
             
             return {
                 gitHubAccountName: gitHubAccountName,
+                gitHubPrivateToken: gitHubPrivateToken,
                 repositoryUrls: selectedUrls
             };
         } catch (error: any) {
             console.error(`リポジトリの列挙に失敗: ${error.message}`);
             return {
                 gitHubAccountName: gitHubAccountName,
+                gitHubPrivateToken: gitHubPrivateToken,
                 repositoryUrls: [],
             };
         }
     },
 })
 
+async function getAllRepositories(gitHubAccountName: string, gitHubPrivateToken: string): Promise<any|undefined> {
+    const perPage = 50;
+    const page = 1;
+
+    // 認証ヘッダーの準備
+    const headers: any = {
+        "User-Agent": "github-repo-cloner",
+        "Accept": "application/vnd.github.v3+json"
+    };
+
+    if (gitHubPrivateToken) {
+        headers["Authorization"] = `token ${gitHubPrivateToken}`;
+    }
+
+    // 認証されたユーザーのリポジトリを取得する場合
+    const endpoint = gitHubPrivateToken 
+        ? `https://api.github.com/user/repos?visibility=public&affiliation=owner`  // 認証されたユーザー自身のリポジトリ
+        : `https://api.github.com/users/${gitHubAccountName}/repos`;  // パブリックリポジトリのみ
+
+    const params: any = {
+        per_page: perPage,
+        page: page,
+        affiliation: "owner",
+        visibility: gitHubPrivateToken ? 'private' : 'public'
+    };
+
+    
+
+    const res = await axios.get(endpoint, {
+        params: params,
+        headers: headers,
+    });
+
+
+    if (res.status === 404) {
+        return undefined
+    }
+
+    return res.data
+}
 
 async function selectUsefulRepos(gitHubAccountName: string, repos: any[], reposNum: number) {
     const model = google("gemini-2.0-flash-001");
@@ -105,7 +133,7 @@ ${repoSummaries}
     prompt: prompt,
     });
 
-    const repoUrlRegex = new RegExp(`https://github\\.com/${gitHubAccountName}/[A-Za-z0-9_.-]+`, "g");
+    const repoUrlRegex = new RegExp(`https://github\\.com/${gitHubAccountName}/[A-Za-z0-9_.-]+`, "gi");
     const selectedRepoUrls = chosenRepos.text.match(repoUrlRegex) ?? [];
 
     return selectedRepoUrls;

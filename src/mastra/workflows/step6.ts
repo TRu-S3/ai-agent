@@ -9,6 +9,7 @@ export const step6 = createStep({
   description: "分析された全データを元に、統合YAMLレポートを生成します。",
   inputSchema: z.object({
     gitHubAccountName: z.string(),
+    hasGitHubPrivateToken: z.boolean(),
     localRepoPaths: z.array(z.string()),
     tokeiData: tokeiAnalyzerOutputSchema,
     commitAnalysis: commitAnalyzerOutputSchema,
@@ -19,9 +20,6 @@ export const step6 = createStep({
     yaml: z.string().describe("統合されたYAMLレポートの文字列")
   }),
   execute: async ({ inputData }) => {
-    console.log("inputData['commit-analyzer']", inputData['commit-analyzer'])
-    console.log("inputData['tokei-analyzer']", inputData['tokei-analyzer'])
-    console.log("inputData['code-summarizer']", inputData['code-summarizer'])
     const commitAnalyzer = inputData['commit-analyzer'];
     const tokeiAnalyzer = inputData['tokei-analyzer'];
     const codeSummarizer = inputData['code-summarizer'];
@@ -31,11 +29,9 @@ export const step6 = createStep({
     const insightsSummariesJSON = JSON.parse(
         codeSummarizer.insightsSummaries.replace(/```(?:json)?\s*|\s*```/g, "").trim()
     );
-    console.log("insightsSummariesJSON",insightsSummariesJSON)
-
 
       const yamlData = {
-        public: {
+        [codeSummarizer.hasGitHubPrivateToken ? 'private' : 'public']: {
           github_username: codeSummarizer.gitHubAccountName,
           analysis_date: new Date().toISOString().slice(0, 10),
           total_repositories: totalRepos,

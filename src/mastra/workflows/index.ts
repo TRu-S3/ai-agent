@@ -11,7 +11,8 @@ import { step6 } from './step6';
 export const repositoryAnalysisWorkflow = createWorkflow({
   id: 'リポジトリ解析ワークフロー',
   inputSchema: z.object({
-    gitHubAccountName: z.string().describe("GitHubのアカウント解析に必要な情報"),
+    gitHubAccountName: z.string().describe("GitHubのアカウント名"),
+    gitHubPrivateToken: z.string().optional().default("").describe("GitHubのプライベートリポジトリ用のトークン")
   }),
   outputSchema: z.object({
     yaml: z

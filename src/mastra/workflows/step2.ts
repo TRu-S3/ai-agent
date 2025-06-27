@@ -13,6 +13,7 @@ const execAsync = promisify(exec);
 export const cloneOutputSchema = z
     .object({
         gitHubAccountName: z.string(),
+        hasGitHubPrivateToken: z.boolean(),
         localRepoPaths: z
             .array(z.string())
             .describe("クローンされたリポジトリの絶対パス（フルパス）"),
@@ -28,21 +29,23 @@ export const step2 = createStep({
     description: "GitHub リポジトリをクローンして、コード解析やファイル処理を可能にします",
     inputSchema: z.object({
         gitHubAccountName: z.string(),
+        gitHubPrivateToken: z.string().optional().default(""),
         repositoryUrls: z
             .array(z.string())
             .describe("リポジトリのURL（例: https://github.com/user/repo）- クローンするGitHubリポジトリのリストを指定します"),
     }),
     outputSchema: cloneOutputSchema,
     execute: async ({ inputData }) => {
-        const { repositoryUrls } = inputData;
+        const { gitHubAccountName, gitHubPrivateToken, repositoryUrls } = inputData;
 
         const cloneResults = await Promise.all(
             repositoryUrls.map(async (url) => {
-                return await cloneRepository(url);
+                return await cloneRepository(url, gitHubAccountName, gitHubPrivateToken);
             })
         );
     return {
         gitHubAccountName: inputData.gitHubAccountName,
+        hasGitHubPrivateToken: !!inputData.gitHubPrivateToken,
         localRepoPaths: cloneResults.map((r) => r.localRepoPaths),
     };
  
@@ -50,7 +53,7 @@ export const step2 = createStep({
 });
 
 
-async function cloneRepository(repositoryUrl: string): Promise<{
+async function cloneRepository(repositoryUrl: string, gitHubAccountName: string, gitHubPrivateToken: string): Promise<{
   localRepoPaths: string;
 }> {
     try {
@@ -72,12 +75,14 @@ async function cloneRepository(repositoryUrl: string): Promise<{
             };
         }
 
-        // クローンコマンドを構築
-        let command = `git clone ${repositoryUrl}`;
+        // 認証トークンがあればURLに埋め込み
+        let cloneUrl = repositoryUrl;
+        if (gitHubPrivateToken) {
+            cloneUrl = `https://${gitHubAccountName}:${gitHubPrivateToken}@github.com${pathname}`;
+        }
 
-        // コマンド実行
+        const command = `git clone ${cloneUrl}`;
         const { stdout, stderr } = await execAsync(command);
-
         return {
             localRepoPaths: fullPath,
         };

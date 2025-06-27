@@ -1,10 +1,11 @@
 # Node.js 24.x のAlpine Linuxイメージをベースにする
 FROM node:24-alpine
 
-# 必要なパッケージをインストール (tokei用)
+# 必要なパッケージをインストール
 RUN apk update && apk add --no-cache \
     tokei \
-    git
+    git \
+    tree
 
 # 作業ディレクトリを作成
 WORKDIR /usr/src/app

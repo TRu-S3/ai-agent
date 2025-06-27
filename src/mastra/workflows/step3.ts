@@ -19,6 +19,7 @@ export const step3 = createStep({
   description: "ローカルclone済みのGitリポジトリからgit logを使ってコミット統計を集計・解析します",
   inputSchema: z.object({
     gitHubAccountName: z.string(), 
+    hasGitHubPrivateToken: z.boolean(),
     localRepoPaths: z.array(z.string()).describe("clone済みリポジトリのローカルパス配列"),
   }),
   outputSchema: commitAnalyzerOutputSchema,

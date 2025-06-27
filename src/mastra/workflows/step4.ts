@@ -19,6 +19,7 @@ export const step4 = createStep({
     description: "tokeiを使ってリポジトリの言語統計とコード複雑度を分析します",
     inputSchema: z.object({
         gitHubAccountName: z.string(), 
+        hasGitHubPrivateToken: z.boolean(),
         localRepoPaths: z.array(z.string()).describe("ローカルにクローン済みしたリポジトリのパスの配列"),
     }),
     outputSchema: tokeiAnalyzerOutputSchema,
