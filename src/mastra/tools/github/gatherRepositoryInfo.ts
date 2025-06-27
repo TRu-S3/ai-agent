@@ -31,7 +31,7 @@ export const gatherRepoOutputSchema = z
  */
 export const gatherRepositoryInfoTool = createTool({
     id: "gather-repository-info",
-    description: "指定されたアカウントのGitHubリポジトリを10個取得し、それらのURLを返します。",
+    description: "指定されたアカウントのGitHubリポジトリを取得し、それらのURLを返します。",
     inputSchema: z.object({
         gitHubAccountName: z
             .string()

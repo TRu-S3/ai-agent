@@ -80,6 +80,8 @@ export const tokeiAnalyzerTool = createTool({
                 };
             }
 
+            console.log(`🚀 コマンド実行中: cd "${repositoryPath}" && tokei --output ${format}`);
+
             // tokeiコマンドを構築
             let command = `cd "${repositoryPath}" && tokei --output ${format}`;
 

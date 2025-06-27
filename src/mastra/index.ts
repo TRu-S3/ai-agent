@@ -1,7 +1,9 @@
 import { Mastra } from "@mastra/core";
 import { PinoLogger } from "@mastra/loggers";
-// import { repositoryAnalysisWorkflow } from "./workflows";
+import { repositoryAnalysisWorkflow } from "./workflows/index";
 import { publicRepositoryAnalysisAgent } from "./agents/index"
+import { LibSQLStore } from "@mastra/libsql";
+
 
 export const mastra = new Mastra({
     server: {
@@ -17,7 +19,10 @@ export const mastra = new Mastra({
     agents: {
         publicRepositoryAnalysisAgent,
     },
-    // workflows: [repositoryAnalysisWorkflow],
+    workflows: { repositoryAnalysisWorkflow },
+     storage: new LibSQLStore({
+        url: ":memory:"
+    }),
     logger: new PinoLogger({
         name: "Mastra",
         level: "debug",
