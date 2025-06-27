@@ -6,8 +6,6 @@ import { z } from "zod";
 import path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { config } from "dotenv";
-config({ path: '../.env' });
 
 const execAsync = promisify(exec);
 

@@ -3,8 +3,6 @@ import { z } from "zod";
 import axios from "axios";
 import { generateText } from 'ai';
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { config } from "dotenv";
-config({ path: '../.env' });
 
 const google = createGoogleGenerativeAI({
     apiKey: process.env.GOOGLE_API_KEY || "",

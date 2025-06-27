@@ -8,8 +8,6 @@ import { tokeiAnalyzerTool } from "../tools/github/tokeiAnalyzer";
 import { saveToFileTool } from "../tools/github/saveToFile";
 import { commitAnalyzerTool } from "../tools/github/commitAnalyzer";
 import { summarizeCodebaseTool } from "../tools/github/summarizeCodebase"
-import { config } from "dotenv";
-config({ path: '/usr/src/app/.env' });
 
 const publicAnalysisInstructionPrompt = `
 You are TechSpyder,
