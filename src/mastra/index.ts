@@ -20,7 +20,7 @@ export const mastra = new Mastra({
         publicRepositoryAnalysisAgent,
     },
     workflows: { repositoryAnalysisWorkflow },
-     storage: new LibSQLStore({
+    storage: new LibSQLStore({
         url: ":memory:"
     }),
     logger: new PinoLogger({

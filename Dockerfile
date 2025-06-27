@@ -18,6 +18,8 @@ RUN npm install
 # アプリケーションのソースコードをコピー
 COPY . .
 
+RUN npm run build
+
 EXPOSE 4111
 ENV PORT=4111
 
