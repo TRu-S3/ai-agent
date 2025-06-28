@@ -4,8 +4,7 @@ FROM node:24-alpine
 # 必要なパッケージをインストール
 RUN apk update && apk add --no-cache \
     tokei \
-    git \
-    tree
+    git
 
 # 作業ディレクトリを作成
 WORKDIR /usr/src/app
