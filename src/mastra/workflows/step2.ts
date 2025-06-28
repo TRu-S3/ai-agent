@@ -83,6 +83,7 @@ async function cloneRepository(repositoryUrl: string, gitHubAccountName: string,
 
         const command = `git clone ${cloneUrl}`;
         const { stdout, stderr } = await execAsync(command);
+
         return {
             localRepoPaths: fullPath,
         };

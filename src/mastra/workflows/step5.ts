@@ -92,21 +92,22 @@ const excludeDirs = [
   ".nyc_output", ".coverage", "reports", "test-results"
 ];
 
-async function getFileStructure(repoRoot:string) {
-  let fileStructure = "";
-  try {
-    const { stdout } = await execAsync(`tree -I '${excludeDirs}'`, { 
-      cwd: repoRoot,
-    });
-    fileStructure = stdout.trim();
-  } catch (err) {
-    fileStructure = "ファイル構造の取得に失敗しました。";
-  }
-  return fileStructure
+async function getFileStructure(repoRoot: string) {
+  const pruneArgs = excludeDirs.map(dir => `-path '*/${dir}'`).join(' -o ');
+  const command = `find . \\( ${pruneArgs} \\) -prune -o -type f -print`;  
+
+    try {
+      console.log(`🚀 コマンド実行中: ${command}`);
+      const { stdout } = await execAsync(command, { cwd: repoRoot });
+      return stdout.trim();
+    } catch (err) {
+      console.error("🚫 find error:", err);
+      return "ファイル構造の取得に失敗しました。";
+    }
 }
 
 async function selectImportantFiles(repoRoot: string, selectFileNum: number): Promise<string[]> {
-  const fileTreeText = await getFileStructure(repoRoot);
+  const fileStructure = await getFileStructure(repoRoot);
   const model = google("gemini-2.0-flash-001");
   const prompt = `
 The following is the file structure of a repository.
@@ -134,7 +135,7 @@ Return your answer in the following JSON format:
 }
 
 File structure:
-${fileTreeText}
+${fileStructure}
 `;
 
 /*
@@ -146,9 +147,9 @@ ${fileTreeText}
 出力形式：ファイルパスのみを改行区切りで列挙してください
 
 ファイル構成：
-${fileTreeText}
+${fileStructure}
 */
-  console.log("🤖 selectImportantFiles: prompt =>", prompt.substring(0, 1000) + " ..."); ////////////////////////////////////////
+  console.log("🤖 selectImportantFiles: prompt =>", prompt); ////////////////////////////////////////
   const result = await generateText({ model, prompt });
   console.log("🤖 selectImportantFiles: AI response =>", result.text.substring(0, 1000) + " ...");///////////////////////////////////////////////
   const cleaned_result = result.text.replace(/```(?:json)?\s*|\s*```/g, "").trim();
@@ -160,23 +161,31 @@ async function summarizeFiles(files: string[], repoRoot: string): Promise<Record
   const summaries: Record<string, string> = {};
   const model = google("gemini-2.0-flash-001");
 
+
   for (const file of files) {
     const fullPath = path.join(repoRoot, file);
 
     // ファイルの存在をチェック
     if (!(await fs.access(fullPath).then(() => true).catch(() => false))) continue;
 
-    const content = await fs.readFile(fullPath, "utf-8");
+    try {
+      await fs.access(fullPath);
+    } catch (err) {
+      console.log(`アクセスエラー: ${fullPath}`, err);
+      continue;
+    }
 
-    // 長い場合は分割（例：4000トークンくらいでカット）
-    const chunks = content.match(/[\s\S]{1,4000}/g) || [];
+const content = await fs.readFile(fullPath, "utf-8");
 
-    let combinedSummary = "";
+  // 長い場合は分割（例：4000トークンくらいでカット）
+  const chunks = content.match(/[\s\S]{1,4000}/g) || [];
 
-    for (const chunk of chunks) {
-      const result = await generateText({
-        model,
-        prompt: `
+  let combinedSummary = "";
+
+  for (const chunk of chunks) {
+    const result = await generateText({
+      model,
+      prompt: `
 The following is a portion of code or content.
 If it appears to be a profile or reference material, provide a detailed summary in English focusing on user-related information.
 If it appears to be source code or an implementation, provide a concise English summary of its purpose, content, and functionality, without mentioning specific variable or function names.
@@ -190,7 +199,7 @@ ${chunk}
 });
     console.log(`🤖 summarizeFiles: file=${file} chunk=${chunks.length} AI response =>`, result.text.substring(0, 1000) + " ...");///////////////////////////////////////
 
-      combinedSummary += result.text + "\n";
+    combinedSummary += result.text + "\n";
     }
     summaries[file] = combinedSummary.trim();
   }
