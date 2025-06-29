@@ -3,6 +3,29 @@ import { z } from 'zod';
 import { repositoryAnalysisWorkflow } from './index';
 import * as yaml from 'yaml';
 
+// YAML結果をメモリに保存するためのストレージ
+const yamlResultsStore = new Map<string, { yaml: string; timestamp: number; recommendations?: any }>();
+
+const saveYamlResult = (username: string, yamlData: string, recommendations?: any) => {
+    yamlResultsStore.set(username, {
+        yaml: yamlData,
+        recommendations,
+        timestamp: Date.now()
+    });
+};
+
+export const getYamlResult = (username: string) => {
+    return yamlResultsStore.get(username);
+};
+
+export const getAllYamlResults = () => {
+    return Array.from(yamlResultsStore.entries()).map(([username, data]) => ({
+        username,
+        timestamp: data.timestamp,
+        hasRecommendations: !!data.recommendations
+    }));
+};
+
 const runRepositoryAnalysis = createStep({
   id: 'run-repository-analysis',
   description: 'Run GitHub repository analysis and generate YAML output',
@@ -10,10 +33,11 @@ const runRepositoryAnalysis = createStep({
     username: z.string().describe('GitHub username to analyze'),
   }),
   outputSchema: z.object({
+    username: z.string(),
     yamlOutput: z.string(),
   }),
-  execute: async ({ inputData }) => {
-    const { username } = inputData;
+  execute: async ({ inputData, context }) => {
+    const username = inputData?.username || context?.getWorkflowInputData?.()?.username || 'testuser';
     
     try {
       // Create a run for the repository analysis workflow
@@ -29,6 +53,7 @@ const runRepositoryAnalysis = createStep({
       });
 
       return {
+        username,
         yamlOutput: result.yaml,
       };
     } catch (error) {
@@ -91,6 +116,7 @@ const runRepositoryAnalysis = createStep({
   summary: "Active developer with strong JavaScript and web development skills, showing consistent contribution patterns and good engineering practices."`;
 
       return {
+        username,
         yamlOutput: fallbackYaml,
       };
     }
@@ -101,9 +127,12 @@ const runRecommendationAnalysis = createStep({
   id: 'run-recommendation-analysis',
   description: 'Generate recommendations based on YAML analysis',
   inputSchema: z.object({
+    username: z.string(),
     yamlOutput: z.string(),
   }),
   outputSchema: z.object({
+    username: z.string(),
+    yamlOutput: z.string(),
     recommendations: z.array(z.object({
       username: z.string(),
       name: z.string(),
@@ -112,7 +141,8 @@ const runRecommendationAnalysis = createStep({
     })),
   }),
   execute: async ({ inputData }) => {
-    const { yamlOutput } = inputData;
+    const username = inputData?.username;
+    const yamlOutput = inputData?.yamlOutput;
     
     try {
       const parsedData = yaml.parse(yamlOutput);
@@ -142,7 +172,7 @@ const runRecommendationAnalysis = createStep({
         { username: "fat", name: "Jacob Thornton", reason: `Frontend engineer experienced in ${primaryLanguages} and web frameworks`, compatibility_score: 86 }
       ];
 
-      return { recommendations: mockRecommendations };
+      return { username, yamlOutput, recommendations: mockRecommendations };
     } catch (error) {
       const mockRecommendations = [
         { username: "octocat", name: "GitHub Mascot", reason: "Default recommendation for testing", compatibility_score: 75 },
@@ -156,8 +186,41 @@ const runRecommendationAnalysis = createStep({
         { username: "isaacs", name: "Isaac Z. Schlueter", reason: "Node.js and npm creator", compatibility_score: 88 },
         { username: "tj", name: "TJ Holowaychuk", reason: "Express.js creator", compatibility_score: 90 }
       ];
-      return { recommendations: mockRecommendations };
+      return { username, yamlOutput, recommendations: mockRecommendations };
     }
+  },
+});
+
+const saveResults = createStep({
+  id: 'save-results',
+  description: 'Save YAML and recommendations to memory',
+  inputSchema: z.object({
+    username: z.string(),
+    yamlOutput: z.string(),
+    recommendations: z.array(z.object({
+      username: z.string(),
+      name: z.string(),
+      reason: z.string(),
+      compatibility_score: z.number(),
+    })),
+  }),
+  outputSchema: z.object({
+    recommendations: z.array(z.object({
+      username: z.string(),
+      name: z.string(),
+      reason: z.string(),
+      compatibility_score: z.number(),
+    })),
+  }),
+  execute: async ({ inputData }) => {
+    const username = inputData?.username;
+    const yamlOutput = inputData?.yamlOutput;
+    const recommendations = inputData?.recommendations;
+    
+    // Save to memory
+    saveYamlResult(username, yamlOutput, recommendations);
+    
+    return { recommendations };
   },
 });
 
@@ -176,6 +239,7 @@ export const integratedWorkflow = createWorkflow({
   }),
 })
   .then(runRepositoryAnalysis)
-  .then(runRecommendationAnalysis);
+  .then(runRecommendationAnalysis)
+  .then(saveResults);
 
 integratedWorkflow.commit();
