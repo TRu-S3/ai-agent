@@ -353,10 +353,3 @@ src/mastra/
 - **Language**: TypeScript
 - **Runtime**: Node.js 20+
 
-### カスタマイズ
-
-推奨アルゴリズムやYAML構造をカスタマイズしたい場合は、対応するワークフローファイルを編集してください。
-
-## ライセンス
-
-ISC License
