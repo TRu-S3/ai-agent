@@ -4,7 +4,6 @@ import { repositoryAnalysisWorkflow } from "./workflows/index";
 import { publicRepositoryAnalysisAgent } from "./agents/index"
 import { LibSQLStore } from "@mastra/libsql";
 
-
 export const mastra = new Mastra({
     server: {
         port: 4111,
