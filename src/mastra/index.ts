@@ -3,6 +3,8 @@ import { PinoLogger } from "@mastra/loggers";
 import { repositoryAnalysisWorkflow } from "./workflows/index";
 import { publicRepositoryAnalysisAgent } from "./agents/index"
 import { LibSQLStore } from "@mastra/libsql";
+import { recommendWorkflow } from "./workflows/recommend-workflow";
+import { integratedWorkflow } from "./workflows/integrated-workflow";
 
 export const mastra = new Mastra({
     server: {
@@ -18,7 +20,11 @@ export const mastra = new Mastra({
     agents: {
         publicRepositoryAnalysisAgent,
     },
-    workflows: { repositoryAnalysisWorkflow },
+    workflows: { 
+        repositoryAnalysisWorkflow,
+        recommendWorkflow,
+        integratedWorkflow
+    },
     storage: new LibSQLStore({
         url: ":memory:"
     }),
