@@ -15,7 +15,8 @@ export const step6 = createStep({
     tokeiData: tokeiAnalyzerOutputSchema,
     commitAnalysis: commitAnalyzerOutputSchema,
     repoSummaries: z.string(),
-    insightsSummaries: z.string()
+    insightsSummaries: z.string(),
+    publicReposNum: z.number()
   }),
   outputSchema: z.object({
     yaml: z.string().describe("統合されたYAMLレポートの文字列")
@@ -25,8 +26,6 @@ export const step6 = createStep({
     const tokeiAnalyzer = inputData['tokei-analyzer'];
     const codeSummarizer = inputData['code-summarizer'];
 
-    const totalRepos = Object.keys(codeSummarizer.localRepoPaths).length;
-
     const insightsSummariesJSON = JSON.parse(
         codeSummarizer.insightsSummaries.replace(/```(?:json)?\s*|\s*```/g, "").trim()
     );
@@ -35,7 +34,7 @@ export const step6 = createStep({
       [codeSummarizer.hasGitHubPrivateToken ? 'private' : 'public']: {
         github_username: codeSummarizer.gitHubAccountName,
         analysis_date: new Date().toISOString().slice(0, 10),
-        total_repositories: totalRepos,
+        total_repositories: codeSummarizer.publicReposNum,
 
         overall_languages: {
           most_common_language: tokeiAnalyzer.mostCommonLanguage,
@@ -87,6 +86,8 @@ export const step6 = createStep({
       }
     };
 
+
+    
     // リポジトリの削除
     for (const repoPath of codeSummarizer.localRepoPaths) {
       if (fs.existsSync(repoPath)) {

@@ -17,6 +17,7 @@ export const cloneOutputSchema = z
         localRepoPaths: z
             .array(z.string())
             .describe("クローンされたリポジトリの絶対パス（フルパス）"),
+        publicReposNum: z.number().describe("パブリックリポジトリの総数")
     })
     .describe("リポジトリクローン操作の結果");
 
@@ -33,6 +34,7 @@ export const step2 = createStep({
         repositoryUrls: z
             .array(z.string())
             .describe("リポジトリのURL（例: https://github.com/user/repo）- クローンするGitHubリポジトリのリストを指定します"),
+        publicReposNum: z.number().describe("パブリックリポジトリの総数")
     }),
     outputSchema: cloneOutputSchema,
     execute: async ({ inputData }) => {
@@ -47,6 +49,7 @@ export const step2 = createStep({
         gitHubAccountName: inputData.gitHubAccountName,
         hasGitHubPrivateToken: !!inputData.gitHubPrivateToken,
         localRepoPaths: cloneResults.map((r) => r.localRepoPaths),
+        publicReposNum: inputData.publicReposNum
     };
  
     },

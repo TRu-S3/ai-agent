@@ -19,14 +19,16 @@ export const step1 = createStep({
         gitHubAccountName: z.string(),
         gitHubPrivateToken: z.string().optional().default(""),
         repositoryUrls: z.array(z.string()).describe("対象アカウントのことがわかるGitHubリポジトリをAIセレクトで5つ選んで返す"),
+        publicReposNum: z.number().describe("パブリックリポジトリの総数")
     }),
     execute: async ({ inputData }) => {
         const { gitHubAccountName, gitHubPrivateToken } = inputData;
-        const reposNum = 5
+        const reposNum = 1
 
         try {
             const allRepo =  await getAllRepositories(gitHubAccountName, gitHubPrivateToken);
-            
+            const publicReposNum = await getPublicReposNum(gitHubAccountName);
+
             if (!allRepo) {
                 throw new Error(`GitHubユーザー "${gitHubAccountName}" は存在しません。`);
             }
@@ -36,7 +38,9 @@ export const step1 = createStep({
             return {
                 gitHubAccountName: gitHubAccountName,
                 gitHubPrivateToken: gitHubPrivateToken,
-                repositoryUrls: selectedUrls
+                repositoryUrls: selectedUrls,
+                publicReposNum: publicReposNum || 0
+
             };
         } catch (error: any) {
             console.error(`リポジトリの列挙に失敗: ${error.message}`);
@@ -44,6 +48,7 @@ export const step1 = createStep({
                 gitHubAccountName: gitHubAccountName,
                 gitHubPrivateToken: gitHubPrivateToken,
                 repositoryUrls: [],
+                publicReposNum: 0,
             };
         }
     },
@@ -88,6 +93,15 @@ async function getAllRepositories(gitHubAccountName: string, gitHubPrivateToken:
     }
 
     return res.data
+}
+
+async function getPublicReposNum(gitHubAccountName: string): Promise<number|undefined> {
+    const res = await axios.get(`https://api.github.com/users/${gitHubAccountName}`);
+    if (res.status === 404) {
+        return undefined
+    }
+
+    return res.data.public_repos;
 }
 
 async function selectUsefulRepos(gitHubAccountName: string, repos: any[], reposNum: number) {

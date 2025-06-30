@@ -21,6 +21,7 @@ export const step4 = createStep({
         gitHubAccountName: z.string(), 
         hasGitHubPrivateToken: z.boolean(),
         localRepoPaths: z.array(z.string()).describe("ローカルにクローン済みしたリポジトリのパスの配列"),
+        publicReposNum: z.number().describe("パブリックリポジトリの総数")
     }),
     outputSchema: tokeiAnalyzerOutputSchema,
     execute: async ({ inputData }) => {
@@ -43,7 +44,6 @@ export const step4 = createStep({
             const result = await analysisRepo(repoPath); 
             
             if (result) {
-                console.log(`--- 成功: ${repoPath} の分析が完了しました ---`);
                 allRepoAnalysisResults.push(result);
             } else {
                 console.error(`--- 失敗: ${repoPath} の分析中にエラーが発生しました ---`);

@@ -19,7 +19,8 @@ export const summarizeCodebaseOutputSchema = z.object({
     hasGitHubPrivateToken: z.boolean(),
     localRepoPaths: z.array(z.string()),
     repoSummaries: z.string().describe("全リポジトリの要約"),
-    insightsSummaries: z.string().describe("全リポジトリの特徴のまとめ")
+    insightsSummaries: z.string().describe("全リポジトリの特徴のまとめ"),
+    publicReposNum: z.number().describe("パブリックリポジトリの総数")
 });
 
 export const step5 = createStep({
@@ -29,6 +30,7 @@ export const step5 = createStep({
         gitHubAccountName: z.string(),
         hasGitHubPrivateToken: z.boolean(),
         localRepoPaths: z.array(z.string()).describe("分析するリポジトリのローカルパス配列"),
+        publicReposNum: z.number().describe("パブリックリポジトリの総数")
     }),
     outputSchema: summarizeCodebaseOutputSchema,
     execute: async ({ inputData }) => {
@@ -36,7 +38,7 @@ export const step5 = createStep({
 
         const combinedFileSummaries: Record<string, string> = {};
         const extractInsights: Record<string, string> = {};
-        const selectFileNum = 20;
+        const selectFileNum = 1;
 
         for (const repoRoot of localRepoPaths) {
             try {
@@ -76,7 +78,8 @@ export const step5 = createStep({
             hasGitHubPrivateToken: inputData.hasGitHubPrivateToken,
             localRepoPaths: localRepoPaths,
             repoSummaries: repoSummaries,
-            insightsSummaries: insightsSummaries
+            insightsSummaries: insightsSummaries,
+            publicReposNum: inputData.publicReposNum
         }
     }
 });
@@ -149,9 +152,7 @@ ${fileStructure}
 ファイル構成：
 ${fileStructure}
 */
-  console.log("🤖 selectImportantFiles: prompt =>", prompt); ////////////////////////////////////////
   const result = await generateText({ model, prompt });
-  console.log("🤖 selectImportantFiles: AI response =>", result.text.substring(0, 1000) + " ...");///////////////////////////////////////////////
   const cleaned_result = result.text.replace(/```(?:json)?\s*|\s*```/g, "").trim();
   const parsed = JSON.parse(cleaned_result);
   return parsed.files;
@@ -175,17 +176,17 @@ async function summarizeFiles(files: string[], repoRoot: string): Promise<Record
       continue;
     }
 
-const content = await fs.readFile(fullPath, "utf-8");
+    const content = await fs.readFile(fullPath, "utf-8");
 
-  // 長い場合は分割（例：4000トークンくらいでカット）
-  const chunks = content.match(/[\s\S]{1,4000}/g) || [];
+    // 長い場合は分割（例：4000トークンくらいでカット）
+    const chunks = content.match(/[\s\S]{1,4000}/g) || [];
 
-  let combinedSummary = "";
+    let combinedSummary = "";
 
-  for (const chunk of chunks) {
-    const result = await generateText({
-      model,
-      prompt: `
+    for (const chunk of chunks) {
+      const result = await generateText({
+        model,
+        prompt: `
 The following is a portion of code or content.
 If it appears to be a profile or reference material, provide a detailed summary in English focusing on user-related information.
 If it appears to be source code or an implementation, provide a concise English summary of its purpose, content, and functionality, without mentioning specific variable or function names.
@@ -197,9 +198,7 @@ ${chunk}
 もし内容が何かしらの実装である場合は目的、内容、機能を英語で簡潔に要約してください。 この時具体的な変数/関数名についての言及はしないでください。
 */
 });
-    console.log(`🤖 summarizeFiles: file=${file} chunk=${chunks.length} AI response =>`, result.text.substring(0, 1000) + " ...");///////////////////////////////////////
-
-    combinedSummary += result.text + "\n";
+      combinedSummary += result.text + "\n";
     }
     summaries[file] = combinedSummary.trim();
   }
@@ -229,8 +228,6 @@ ${combinedText}
 
 ${combinedText}
 */
-
-    console.log("🤖 combineSummaries: AI response =>", combinedSummaryText.text.substring(0, 1000) + " ...");///////////////////////////////////////////
 
     const extractInsight = await generateText({
         model: google("gemini-2.0-flash-001"),
@@ -271,8 +268,6 @@ Based on the following text, extract information from the following three catego
 <-------------------------------------------------------------->
 ${combinedText}
 `});
-    console.log("🤖 extractInsight: AI response =>", extractInsight.text.substring(0, 1000) + " ...");///////////////////////////////////////////
-
 
   return {
     combinedFileSummary: combinedSummaryText.text,
@@ -298,8 +293,6 @@ Please **combine** the information from all of them into a **single** summary, r
 <-------------------------------------------------------------->
 ${combinedText}
 `});
-    console.log("🤖 repoSummaries: AI response =>", repoSummaries.text.substring(0, 1000) + " ...");///////////////////////////////////////////
-
     return repoSummaries.text
 }
 
@@ -349,8 +342,6 @@ Respond only in the following JSON format:
 <-------------------------------------------------------------->
 ${combinedText}
 `});
-    console.log("🤖 insightsSummaries: AI response =>", insightsSummaries.text.substring(0, 1000) + " ...");///////////////////////////////////////////
-
     return insightsSummaries.text
 }
 
@@ -419,12 +410,11 @@ ${readmeContent}
   なお、自動生成の判定には以下のファイル構造とREADME.mdの内容がマッチしていそうかも判断材料にしてください。
   ${fileStructure}
 */
-  console.log("🤖 readmeChecker: prompt =>", readmeCheckerInstructionPrompt.substring(0, 1000) + " ...");////////////////////////////////
 
   const summary = await generateText({
     model: model,
     prompt: readmeCheckerInstructionPrompt,
   });
-  console.log("🤖 readmeChecker: AI response =>", summary.text.substring(0, 1000) + " ...");///////////////////////////////////////
+
   return summary.text
 } 

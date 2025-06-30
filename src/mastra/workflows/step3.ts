@@ -21,6 +21,7 @@ export const step3 = createStep({
     gitHubAccountName: z.string(), 
     hasGitHubPrivateToken: z.boolean(),
     localRepoPaths: z.array(z.string()).describe("clone済みリポジトリのローカルパス配列"),
+    publicReposNum: z.number().describe("パブリックリポジトリの総数")
   }),
   outputSchema: commitAnalyzerOutputSchema,
   execute: async ({ inputData }) => {
